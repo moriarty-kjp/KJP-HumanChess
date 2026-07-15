@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>KJP HumanChess</title>
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"
+  >
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px 12px;
+      background: #15171b;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    .app {
+      width: min(94vw, 480px);
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 5px 0 6px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      color: #b7bcc5;
+      font-size: 14px;
+    }
+
+    #board {
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    #status {
+      min-height: 24px;
+      margin: 16px 0 10px;
+      font-weight: bold;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      border: 0;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #restartButton {
+      background: white;
+      color: #15171b;
+    }
+
+    #undoButton {
+      background: #343842;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <h1>KJP HumanChess</h1>
+    <p class="subtitle">Version 0.1 — Playable Chessboard</p>
+
+    <div id="board"></div>
+
+    <div id="status">White to move</div>
+
+    <div class="controls">
+      <button id="undoButton">Undo</button>
+      <button id="restartButton">Restart</button>
+    </div>
+  </main>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+
+  <script>
+    const game = new Chess();
+    const statusElement = document.getElementById("status");
+
+    function updateStatus() {
+      let message = game.turn() === "w"
+        ? "White to move"
+        : "Black to move";
+
+      if (game.in_checkmate()) {
+        message = "Checkmate!";
+      } else if (game.in_draw()) {
+        message = "Draw!";
+      } else if (game.in_check()) {
+        message += " — Check!";
+      }
+
+      statusElement.textContent = message;
+    }
+
+    function onDragStart(source, piece) {
+      if (game.game_over()) {
+        return false;
+      }
+
+      if (
+        (game.turn() === "w" && piece.startsWith("b")) ||
+        (game.turn() === "b" && piece.startsWith("w"))
+      ) {
+        return false;
+      }
+    }
+
+    function onDrop(source, target) {
+      const move = game.move({
+        from: source,
+        to: target,
+        promotion: "q"
+      });
+
+      if (move === null) {
+        return "snapback";
+      }
+
+      updateStatus();
+    }
+
+    function onSnapEnd() {
+      board.position(game.fen());
+    }
+
+    const board = Chessboard("board", {
+      position: "start",
+      draggable: true,
+      onDragStart,
+      onDrop,
+      onSnapEnd,
+      pieceTheme:
+        "https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/img/chesspieces/wikipedia/{piece}.png"
+    });
+
+    document
+      .getElementById("restartButton")
+      .addEventListener("click", function () {
+        game.reset();
+        board.start();
+        updateStatus();
+      });
+
+    document
+      .getElementById("undoButton")
+      .addEventListener("click", function () {
+        game.undo();
+        board.position(game.fen());
+        updateStatus();
+      });
+
+    updateStatus();
+  </script>
+</body>
+</html>
