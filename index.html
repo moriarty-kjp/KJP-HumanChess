@@ -1,84 +1,238 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#15171b" />
   <title>KJP HumanChess</title>
 
-  <link
-    rel="stylesheet"
-    pieceTheme:
-  pieceTheme:
-  "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png"
-  >
-
   <style>
+    :root {
+      --page: #15171b;
+      --panel: #202329;
+      --text: #f4f4f4;
+      --muted: #aeb4bf;
+      --light-square: #e9d7b5;
+      --dark-square: #8a5f3c;
+      --selected: #ffd54a;
+      --legal: rgba(40, 190, 90, 0.65);
+      --capture: rgba(225, 70, 70, 0.75);
+      --last: rgba(255, 215, 0, 0.28);
+      --button: #343842;
+      --button-main: #f4f4f4;
+      --button-main-text: #15171b;
+    }
+
     * {
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       margin: 0;
       min-height: 100vh;
-      padding: 20px 12px;
-      background: #15171b;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
+      padding:
+        max(16px, env(safe-area-inset-top))
+        12px
+        max(20px, env(safe-area-inset-bottom));
+      background: var(--page);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
     }
 
     .app {
-      width: min(94vw, 480px);
+      width: min(96vw, 520px);
       margin: 0 auto;
     }
 
     h1 {
-      margin: 5px 0 6px;
-      font-size: 28px;
+      margin: 2px 0 4px;
+      text-align: center;
+      font-size: clamp(25px, 7vw, 34px);
     }
 
     .subtitle {
-      margin: 0 0 18px;
-      color: #b7bcc5;
+      margin: 0 0 14px;
+      color: var(--muted);
+      text-align: center;
       font-size: 14px;
     }
 
-    #board {
-      width: 100%;
-      margin: 0 auto;
+    .panel {
+      padding: 12px;
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .28);
+    }
+
+    .topbar {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
     }
 
     #status {
-      min-height: 24px;
-      margin: 16px 0 10px;
-      font-weight: bold;
+      min-height: 22px;
+      font-weight: 700;
     }
 
-    .controls {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
+    #moveCount {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
     }
 
-    button {
-      flex: 1;
-      padding: 12px;
-      border: 0;
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      width: 100%;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,.12);
       border-radius: 10px;
-      font-size: 16px;
-      font-weight: bold;
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    .square {
+      position: relative;
+      display: grid;
+      place-items: center;
+      border: 0;
+      padding: 0;
+      font-family: "Arial Unicode MS", "Segoe UI Symbol", serif;
+      font-size: clamp(29px, 10.4vw, 58px);
+      line-height: 1;
       cursor: pointer;
     }
 
-    #restartButton {
-      background: white;
-      color: #15171b;
+    .light { background: var(--light-square); }
+    .dark  { background: var(--dark-square); }
+
+    .square.last-move::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--last);
+      pointer-events: none;
     }
 
-    #undoButton {
-      background: #343842;
-      color: white;
+    .square.selected {
+      outline: 4px solid var(--selected);
+      outline-offset: -4px;
+      z-index: 2;
+    }
+
+    .square.legal::after {
+      content: "";
+      position: absolute;
+      width: 24%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--legal);
+      pointer-events: none;
+    }
+
+    .square.capture::after {
+      content: "";
+      position: absolute;
+      inset: 6%;
+      border: 5px solid var(--capture);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .piece {
+      position: relative;
+      z-index: 1;
+      transform: translateY(-1px);
+      text-shadow: 0 1px 1px rgba(255,255,255,.15);
+    }
+
+    .coord-file,
+    .coord-rank {
+      position: absolute;
+      z-index: 3;
+      font-family: Arial, sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      opacity: .72;
+      pointer-events: none;
+    }
+
+    .coord-file {
+      right: 3px;
+      bottom: 2px;
+    }
+
+    .coord-rank {
+      left: 3px;
+      top: 2px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 11px;
+    }
+
+    button.control {
+      min-height: 46px;
+      border: 0;
+      border-radius: 11px;
+      background: var(--button);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    button.control.primary {
+      background: var(--button-main);
+      color: var(--button-main-text);
+    }
+
+    button.control:active {
+      transform: scale(.98);
+    }
+
+    .history {
+      margin-top: 12px;
+      padding: 10px;
+      max-height: 150px;
+      overflow: auto;
+      border-radius: 11px;
+      background: rgba(0, 0, 0, .16);
+    }
+
+    .history-title {
+      margin: 0 0 7px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    #moves {
+      display: grid;
+      grid-template-columns: 34px 1fr 1fr;
+      row-gap: 5px;
+      font-size: 14px;
+    }
+
+    .empty-history {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .note {
+      margin: 12px 3px 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      text-align: center;
     }
   </style>
 </head>
@@ -86,102 +240,391 @@
 <body>
   <main class="app">
     <h1>KJP HumanChess</h1>
-    <p class="subtitle">Version 0.1 — Playable Chessboard</p>
+    <p class="subtitle">Version 0.1 â Local Chessboard Foundation</p>
 
-    <div id="board"></div>
+    <section class="panel">
+      <div class="topbar">
+        <div id="status">White to move</div>
+        <div id="moveCount">Move 1</div>
+      </div>
 
-    <div id="status">White to move</div>
+      <div id="board" aria-label="Chessboard"></div>
 
-    <div class="controls">
-      <button id="undoButton">Undo</button>
-      <button id="restartButton">Restart</button>
-    </div>
+      <div class="controls">
+        <button class="control" id="undoButton" type="button">Undo</button>
+        <button class="control primary" id="restartButton" type="button">Restart</button>
+      </div>
+
+      <div class="history">
+        <p class="history-title">Move history</p>
+        <div id="moves"><span class="empty-history">No moves yet</span></div>
+      </div>
+    </section>
+
+    <p class="note">
+      Tap a piece, then tap a highlighted square. This version has local pieces,
+      turn control, captures, promotion, undo, and restart.
+    </p>
   </main>
 
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
-
   <script>
-    const game = new Chess();
+    "use strict";
+
+    const PIECES = {
+      wK: "â", wQ: "â", wR: "â", wB: "â", wN: "â", wP: "â",
+      bK: "â", bQ: "â", bR: "â", bB: "â", bN: "â", bP: "â"
+    };
+
+    const FILES = ["a","b","c","d","e","f","g","h"];
+
+    const START_POSITION = [
+      ["bR","bN","bB","bQ","bK","bB","bN","bR"],
+      ["bP","bP","bP","bP","bP","bP","bP","bP"],
+      [null,null,null,null,null,null,null,null],
+      [null,null,null,null,null,null,null,null],
+      [null,null,null,null,null,null,null,null],
+      [null,null,null,null,null,null,null,null],
+      ["wP","wP","wP","wP","wP","wP","wP","wP"],
+      ["wR","wN","wB","wQ","wK","wB","wN","wR"]
+    ];
+
+    let boardState = cloneBoard(START_POSITION);
+    let turn = "w";
+    let selected = null;
+    let legalTargets = [];
+    let history = [];
+    let lastMove = null;
+
+    const boardElement = document.getElementById("board");
     const statusElement = document.getElementById("status");
+    const moveCountElement = document.getElementById("moveCount");
+    const movesElement = document.getElementById("moves");
 
-    function updateStatus() {
-      let message = game.turn() === "w"
-        ? "White to move"
-        : "Black to move";
-
-      if (game.in_checkmate()) {
-        message = "Checkmate!";
-      } else if (game.in_draw()) {
-        message = "Draw!";
-      } else if (game.in_check()) {
-        message += " — Check!";
-      }
-
-      statusElement.textContent = message;
+    function cloneBoard(board) {
+      return board.map(row => [...row]);
     }
 
-    function onDragStart(source, piece) {
-      if (game.game_over()) {
-        return false;
+    function inside(row, col) {
+      return row >= 0 && row < 8 && col >= 0 && col < 8;
+    }
+
+    function colorOf(piece) {
+      return piece ? piece[0] : null;
+    }
+
+    function typeOf(piece) {
+      return piece ? piece[1] : null;
+    }
+
+    function squareName(row, col) {
+      return FILES[col] + (8 - row);
+    }
+
+    function render() {
+      boardElement.innerHTML = "";
+
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const square = document.createElement("button");
+          square.type = "button";
+          square.className = "square " + ((row + col) % 2 === 0 ? "light" : "dark");
+          square.dataset.row = row;
+          square.dataset.col = col;
+          square.setAttribute("aria-label", squareName(row, col));
+
+          if (lastMove &&
+              ((lastMove.from.row === row && lastMove.from.col === col) ||
+               (lastMove.to.row === row && lastMove.to.col === col))) {
+            square.classList.add("last-move");
+          }
+
+          if (selected && selected.row === row && selected.col === col) {
+            square.classList.add("selected");
+          }
+
+          const target = legalTargets.find(t => t.row === row && t.col === col);
+          if (target) {
+            square.classList.add(boardState[row][col] ? "capture" : "legal");
+          }
+
+          const piece = boardState[row][col];
+          if (piece) {
+            const pieceSpan = document.createElement("span");
+            pieceSpan.className = "piece";
+            pieceSpan.textContent = PIECES[piece];
+            square.appendChild(pieceSpan);
+          }
+
+          if (col === 0) {
+            const rank = document.createElement("span");
+            rank.className = "coord-rank";
+            rank.textContent = 8 - row;
+            square.appendChild(rank);
+          }
+
+          if (row === 7) {
+            const file = document.createElement("span");
+            file.className = "coord-file";
+            file.textContent = FILES[col];
+            square.appendChild(file);
+          }
+
+          square.addEventListener("click", onSquareClick);
+          boardElement.appendChild(square);
+        }
       }
 
-      if (
-        (game.turn() === "w" && piece.startsWith("b")) ||
-        (game.turn() === "b" && piece.startsWith("w"))
-      ) {
-        return false;
+      statusElement.textContent = turn === "w" ? "White to move" : "Black to move";
+      moveCountElement.textContent = "Move " + (Math.floor(history.length / 2) + 1);
+      renderMoveHistory();
+    }
+
+    function onSquareClick(event) {
+      const row = Number(event.currentTarget.dataset.row);
+      const col = Number(event.currentTarget.dataset.col);
+      const piece = boardState[row][col];
+
+      if (selected) {
+        const legal = legalTargets.some(t => t.row === row && t.col === col);
+
+        if (legal) {
+          makeMove(selected.row, selected.col, row, col);
+          return;
+        }
+
+        if (piece && colorOf(piece) === turn) {
+          selectPiece(row, col);
+          return;
+        }
+
+        clearSelection();
+        render();
+        return;
+      }
+
+      if (piece && colorOf(piece) === turn) {
+        selectPiece(row, col);
       }
     }
 
-    function onDrop(source, target) {
-      const move = game.move({
-        from: source,
-        to: target,
-        promotion: "q"
+    function selectPiece(row, col) {
+      selected = { row, col };
+      legalTargets = getPseudoLegalMoves(row, col);
+      render();
+    }
+
+    function clearSelection() {
+      selected = null;
+      legalTargets = [];
+    }
+
+    function makeMove(fromRow, fromCol, toRow, toCol) {
+      const movingPiece = boardState[fromRow][fromCol];
+      const capturedPiece = boardState[toRow][toCol];
+
+      history.push({
+        board: cloneBoard(boardState),
+        turn,
+        lastMove,
+        notation: createNotation(movingPiece, fromRow, fromCol, toRow, toCol, capturedPiece)
       });
 
-      if (move === null) {
-        return "snapback";
+      boardState[toRow][toCol] = movingPiece;
+      boardState[fromRow][fromCol] = null;
+
+      if (typeOf(movingPiece) === "P" && (toRow === 0 || toRow === 7)) {
+        boardState[toRow][toCol] = colorOf(movingPiece) + "Q";
       }
 
-      updateStatus();
+      lastMove = {
+        from: { row: fromRow, col: fromCol },
+        to: { row: toRow, col: toCol }
+      };
+
+      turn = turn === "w" ? "b" : "w";
+      clearSelection();
+      render();
     }
 
-    function onSnapEnd() {
-      board.position(game.fen());
+    function createNotation(piece, fromRow, fromCol, toRow, toCol, captured) {
+      const type = typeOf(piece);
+      const pieceLetter = type === "P" ? "" : type;
+      const captureMark = captured ? "x" : "";
+      const fromFile = type === "P" && captured ? FILES[fromCol] : "";
+      const promotion = type === "P" && (toRow === 0 || toRow === 7) ? "=Q" : "";
+      return fromFile + pieceLetter + captureMark + squareName(toRow, toCol) + promotion;
     }
 
-    const board = Chessboard("board", {
-      position: "start",
-      draggable: true,
-      onDragStart,
-      onDrop,
-      onSnapEnd,
-      pieceTheme:
-        "https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/img/chesspieces/wikipedia/{piece}.png"
-    });
+    function getPseudoLegalMoves(row, col) {
+      const piece = boardState[row][col];
+      if (!piece) return [];
 
-    document
-      .getElementById("restartButton")
-      .addEventListener("click", function () {
-        game.reset();
-        board.start();
-        updateStatus();
-      });
+      const color = colorOf(piece);
+      const type = typeOf(piece);
 
-    document
-      .getElementById("undoButton")
-      .addEventListener("click", function () {
-        game.undo();
-        board.position(game.fen());
-        updateStatus();
-      });
+      if (type === "P") return pawnMoves(row, col, color);
+      if (type === "N") return knightMoves(row, col, color);
+      if (type === "B") return slidingMoves(row, col, color, [[1,1],[1,-1],[-1,1],[-1,-1]]);
+      if (type === "R") return slidingMoves(row, col, color, [[1,0],[-1,0],[0,1],[0,-1]]);
+      if (type === "Q") return slidingMoves(row, col, color, [
+        [1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]
+      ]);
+      if (type === "K") return kingMoves(row, col, color);
 
-    updateStatus();
+      return [];
+    }
+
+    function pawnMoves(row, col, color) {
+      const moves = [];
+      const direction = color === "w" ? -1 : 1;
+      const startRow = color === "w" ? 6 : 1;
+      const oneStep = row + direction;
+      const twoStep = row + direction * 2;
+
+      if (inside(oneStep, col) && !boardState[oneStep][col]) {
+        moves.push({ row: oneStep, col });
+
+        if (row === startRow && !boardState[twoStep][col]) {
+          moves.push({ row: twoStep, col });
+        }
+      }
+
+      for (const dc of [-1, 1]) {
+        const targetRow = row + direction;
+        const targetCol = col + dc;
+
+        if (!inside(targetRow, targetCol)) continue;
+
+        const target = boardState[targetRow][targetCol];
+        if (target && colorOf(target) !== color) {
+          moves.push({ row: targetRow, col: targetCol });
+        }
+      }
+
+      return moves;
+    }
+
+    function knightMoves(row, col, color) {
+      const moves = [];
+      const offsets = [
+        [-2,-1],[-2,1],[-1,-2],[-1,2],
+        [1,-2],[1,2],[2,-1],[2,1]
+      ];
+
+      for (const [dr, dc] of offsets) {
+        const r = row + dr;
+        const c = col + dc;
+
+        if (!inside(r, c)) continue;
+
+        const target = boardState[r][c];
+        if (!target || colorOf(target) !== color) {
+          moves.push({ row: r, col: c });
+        }
+      }
+
+      return moves;
+    }
+
+    function kingMoves(row, col, color) {
+      const moves = [];
+
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+
+          const r = row + dr;
+          const c = col + dc;
+
+          if (!inside(r, c)) continue;
+
+          const target = boardState[r][c];
+          if (!target || colorOf(target) !== color) {
+            moves.push({ row: r, col: c });
+          }
+        }
+      }
+
+      return moves;
+    }
+
+    function slidingMoves(row, col, color, directions) {
+      const moves = [];
+
+      for (const [dr, dc] of directions) {
+        let r = row + dr;
+        let c = col + dc;
+
+        while (inside(r, c)) {
+          const target = boardState[r][c];
+
+          if (!target) {
+            moves.push({ row: r, col: c });
+          } else {
+            if (colorOf(target) !== color) {
+              moves.push({ row: r, col: c });
+            }
+            break;
+          }
+
+          r += dr;
+          c += dc;
+        }
+      }
+
+      return moves;
+    }
+
+    function undoMove() {
+      const previous = history.pop();
+      if (!previous) return;
+
+      boardState = cloneBoard(previous.board);
+      turn = previous.turn;
+      lastMove = previous.lastMove;
+      clearSelection();
+      render();
+    }
+
+    function restartGame() {
+      boardState = cloneBoard(START_POSITION);
+      turn = "w";
+      selected = null;
+      legalTargets = [];
+      history = [];
+      lastMove = null;
+      render();
+    }
+
+    function renderMoveHistory() {
+      movesElement.innerHTML = "";
+
+      if (history.length === 0) {
+        const empty = document.createElement("span");
+        empty.className = "empty-history";
+        empty.textContent = "No moves yet";
+        movesElement.appendChild(empty);
+        return;
+      }
+
+      for (let i = 0; i < history.length; i += 2) {
+        const number = document.createElement("span");
+        number.textContent = (i / 2 + 1) + ".";
+
+        const white = document.createElement("span");
+        white.textContent = history[i]?.notation || "";
+
+        const black = document.createElement("span");
+        black.textContent = history[i + 1]?.notation || "";
+
+        movesElement.append(number, white, black);
+      }
+    }
+
+    document.getElementById("undoButton").addEventListener("click", undoMove);
+    document.getElementById("restartButton").addEventListener("click", restartGame);
+
+    render();
   </script>
 </body>
 </html>
