@@ -85,39 +85,51 @@
     }
 
     #board {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      width: 100%;
-      aspect-ratio: 1;
-      overflow: hidden;
-      border: 2px solid rgba(255,255,255,.12);
-      border-radius: 10px;
-      touch-action: manipulation;
-      user-select: none;
-    }
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-rows: repeat(8, minmax(0, 1fr));
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border: 2px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  touch-action: manipulation;
+  user-select: none;
+}
 
     .square {
-      position: relative;
-      display: grid;
-      place-items: center;
-      border: 0;
-      padding: 0;
-      font-family: "Arial Unicode MS", "Segoe UI Symbol", serif;
-      font-size: clamp(29px, 10.4vw, 58px);
-      line-height: 1;
-      cursor: pointer;
-    }
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: "Arial Unicode MS", "Segoe UI Symbol", serif;
+  font-size: clamp(28px, 9vw, 52px);
+  line-height: 1;
+  cursor: pointer;
+}
 
-    .light { background: var(--light-square); }
-    .dark  { background: var(--dark-square); }
+.white-piece {
+  color: #ffffff;
+  text-shadow:
+    -1px -1px 0 #111,
+     1px -1px 0 #111,
+    -1px  1px 0 #111,
+     1px  1px 0 #111;
+}
 
-    .square.last-move::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: var(--last);
-      pointer-events: none;
-    }
+.black-piece {
+  color: #111111;
+  text-shadow: 0 1px 1px rgba(255,255,255,.25);
+}
 
     .square.selected {
       outline: 4px solid var(--selected);
@@ -361,8 +373,9 @@
           const piece = boardState[row][col];
           if (piece) {
             const pieceSpan = document.createElement("span");
-            pieceSpan.className = "piece";
-            pieceSpan.textContent = PIECES[piece];
+            pieceSpan.className =
+  "piece " + (colorOf(piece) === "w" ? "white-piece" : "black-piece");
+pieceSpan.textContent = PIECES[piece];
             square.appendChild(pieceSpan);
           }
 
